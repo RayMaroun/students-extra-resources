@@ -26,7 +26,7 @@ We're building an E-Commerce System using **Feature-Based Package Organization**
 1. Open IntelliJ IDEA
 2. Click **File → New → Project**
 3. Name it: `ECommerceSystem`
-4. Location: `~/pluralsight/workbook-4` (or `C:/pluralsight/workbook-4` on Windows)
+4. Location: `~/pluralsight/workbook-6` (or `C:/pluralsight/workbook-6` on Windows)
 5. Select **Java** as language
 6. Select **Maven** as build system
 7. Choose **corretto-17** as JDK
