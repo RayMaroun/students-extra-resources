@@ -6,7 +6,7 @@
 
 ## 🎯 Project Overview
 
-We're building an E-Commerce System using **Feature-Based Package Organization** (also called Package by Feature or Vertical Slicing). Unlike our previous School System that organized by layers (models, services, utils), this project organizes code by business features. Each feature is self-contained with its own models, services, and controllers - like mini-applications within your application!
+We're building an E-Commerce System using **Feature-Based Package Organization** (also called Package by Feature or Vertical Slicing). Unlike our previous School System that organized by layers (models, services, utils), this project organizes code by business features. Each feature is self-contained with its own models and services - like mini-applications within your application!
 
 **What You'll Master:**
 
@@ -70,20 +70,22 @@ public class OrganizationComparison {
         System.out.println("✗ High coupling between packages\n");
 
         System.out.println("FEATURE-BASED (This Project):");
-        System.out.println("com.company.shop/");
+        System.out.println("com.pluralsight.shop/");
         System.out.println("├── products/");
         System.out.println("│   ├── Product.java");
-        System.out.println("│   ├── ProductService.java");
-        System.out.println("│   └── ProductController.java");
+        System.out.println("│   └── ProductService.java");
         System.out.println("├── cart/");
         System.out.println("│   ├── Cart.java");
         System.out.println("│   ├── CartItem.java");
-        System.out.println("│   ├── CartService.java");
-        System.out.println("│   └── CartController.java");
-        System.out.println("└── orders/");
-        System.out.println("    ├── Order.java");
-        System.out.println("    ├── OrderService.java");
-        System.out.println("    └── OrderController.java");
+        System.out.println("│   └── CartService.java");
+        System.out.println("├── orders/");
+        System.out.println("│   ├── Order.java");
+        System.out.println("│   ├── OrderItem.java");
+        System.out.println("│   └── OrderService.java");
+        System.out.println("└── common/");
+        System.out.println("    ├── IdGenerator.java");
+        System.out.println("    ├── PriceFormatter.java");
+        System.out.println("    └── ValidationUtils.java");
         System.out.println("\n✓ Organized by business features");
         System.out.println("✓ Feature code stays together");
         System.out.println("✓ Easy to find and modify features");
@@ -136,8 +138,6 @@ Create these packages under `src/main/java`:
    - `com.pluralsight.shop.products`
    - `com.pluralsight.shop.cart`
    - `com.pluralsight.shop.orders`
-   - `com.pluralsight.shop.customers`
-   - `com.pluralsight.shop.payment`
    - `com.pluralsight.shop.common` (shared utilities)
 
 Your structure should look like:
@@ -147,8 +147,6 @@ com/pluralsight/shop/
 ├── products/     (everything about products)
 ├── cart/         (everything about shopping cart)
 ├── orders/       (everything about orders)
-├── customers/    (everything about customers)
-├── payment/      (everything about payments)
 └── common/       (shared across features)
 ```
 
@@ -169,23 +167,23 @@ In `com.pluralsight.shop.products`, create `Product.java`:
 ```java
 package com.pluralsight.shop.products;
 
-import java.math.BigDecimal;
-
 public class Product {
     private String productId;
     private String name;
     private String description;
-    private BigDecimal price;
+    private double price;
     private int stockQuantity;
-    private ProductCategory category;
+    private String category; // "ELECTRONICS", "CLOTHING", "FOOD", "BOOKS"
 
-    public Product(String productId, String name, BigDecimal price, int stockQuantity) {
+    // Constructor
+    public Product(String productId, String name, double price, int stockQuantity) {
         this.productId = productId;
         this.name = name;
         this.price = price;
         this.stockQuantity = stockQuantity;
     }
 
+    // Business logic methods
     public boolean isInStock() {
         return stockQuantity > 0;
     }
@@ -198,8 +196,34 @@ public class Product {
         if (hasEnoughStock(quantity)) {
             stockQuantity -= quantity;
         } else {
-            throw new IllegalArgumentException("Not enough stock");
+            System.out.println("ERROR: Not enough stock for " + name);
         }
+    }
+
+    public void addStock(int quantity) {
+        stockQuantity += quantity;
+    }
+
+    // Calculate tax based on category
+    public double getTaxRate() {
+        if (category == null) return 0.08; // Default 8%
+
+        switch (category) {
+            case "ELECTRONICS":
+                return 0.15;  // 15% tax
+            case "CLOTHING":
+                return 0.10;  // 10% tax
+            case "FOOD":
+                return 0.05;  // 5% tax
+            case "BOOKS":
+                return 0.0;   // No tax on books
+            default:
+                return 0.08;  // Default 8%
+        }
+    }
+
+    public double getPriceWithTax() {
+        return price + (price * getTaxRate());
     }
 
     // Getters and setters
@@ -207,10 +231,11 @@ public class Product {
     public String getName() { return name; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-    public BigDecimal getPrice() { return price; }
+    public double getPrice() { return price; }
+    public void setPrice(double price) { this.price = price; }
     public int getStockQuantity() { return stockQuantity; }
-    public ProductCategory getCategory() { return category; }
-    public void setCategory(ProductCategory category) { this.category = category; }
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
 
     @Override
     public String toString() {
@@ -220,46 +245,16 @@ public class Product {
 }
 ```
 
-In the SAME package, create `ProductCategory.java`:
-
-```java
-package com.pluralsight.shop.products;
-
-public enum ProductCategory {
-    ELECTRONICS("Electronics", 0.15),    // 15% tax
-    CLOTHING("Clothing", 0.10),         // 10% tax
-    FOOD("Food", 0.05),                 // 5% tax
-    BOOKS("Books", 0.0),                 // No tax
-    HOME("Home & Garden", 0.10),        // 10% tax
-    SPORTS("Sports & Outdoors", 0.10);  // 10% tax
-
-    private final String displayName;
-    private final double taxRate;
-
-    ProductCategory(String displayName, double taxRate) {
-        this.displayName = displayName;
-        this.taxRate = taxRate;
-    }
-
-    public String getDisplayName() { return displayName; }
-    public double getTaxRate() { return taxRate; }
-}
-```
-
 In the SAME package, create `ProductService.java`:
 
 ```java
 package com.pluralsight.shop.products;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 public class ProductService {
-    private Map<String, Product> productDatabase;
+    private HashMap<String, Product> productDatabase;
     private int nextProductId;
 
     public ProductService() {
@@ -269,14 +264,15 @@ public class ProductService {
     }
 
     private void initializeSampleProducts() {
-        addProduct("Laptop", new BigDecimal("999.99"), 10, ProductCategory.ELECTRONICS);
-        addProduct("T-Shirt", new BigDecimal("19.99"), 50, ProductCategory.CLOTHING);
-        addProduct("Java Programming Book", new BigDecimal("49.99"), 20, ProductCategory.BOOKS);
-        addProduct("Coffee Maker", new BigDecimal("79.99"), 15, ProductCategory.HOME);
-        addProduct("Running Shoes", new BigDecimal("89.99"), 25, ProductCategory.SPORTS);
+        addProduct("Laptop", 999.99, 10, "ELECTRONICS");
+        addProduct("T-Shirt", 19.99, 50, "CLOTHING");
+        addProduct("Java Programming Book", 49.99, 20, "BOOKS");
+        addProduct("Coffee Maker", 79.99, 15, "ELECTRONICS");
+        addProduct("Running Shoes", 89.99, 25, "CLOTHING");
+        addProduct("Organic Apples (per lb)", 2.99, 100, "FOOD");
     }
 
-    public Product addProduct(String name, BigDecimal price, int stock, ProductCategory category) {
+    public Product addProduct(String name, double price, int stock, String category) {
         String productId = "PROD" + nextProductId++;
         Product product = new Product(productId, name, price, stock);
         product.setCategory(category);
@@ -289,29 +285,28 @@ public class ProductService {
         return productDatabase.get(productId);
     }
 
-    public List<Product> findByCategory(ProductCategory category) {
-        return productDatabase.values().stream()
-            .filter(p -> p.getCategory() == category)
-            .collect(Collectors.toList());
-    }
-
-    public List<Product> findInStock() {
-        return productDatabase.values().stream()
-            .filter(Product::isInStock)
-            .collect(Collectors.toList());
-    }
-
-    public List<Product> getAllProducts() {
-        return new ArrayList<>(productDatabase.values());
-    }
-
-    public BigDecimal calculatePriceWithTax(Product product) {
-        if (product.getCategory() == null) {
-            return product.getPrice();
+    public ArrayList<Product> findByCategory(String category) {
+        ArrayList<Product> result = new ArrayList<>();
+        for (Product product : productDatabase.values()) {
+            if (category.equals(product.getCategory())) {
+                result.add(product);
+            }
         }
-        double taxRate = product.getCategory().getTaxRate();
-        BigDecimal tax = product.getPrice().multiply(BigDecimal.valueOf(taxRate));
-        return product.getPrice().add(tax);
+        return result;
+    }
+
+    public ArrayList<Product> findInStock() {
+        ArrayList<Product> result = new ArrayList<>();
+        for (Product product : productDatabase.values()) {
+            if (product.isInStock()) {
+                result.add(product);
+            }
+        }
+        return result;
+    }
+
+    public ArrayList<Product> getAllProducts() {
+        return new ArrayList<>(productDatabase.values());
     }
 
     public boolean checkAndReduceStock(String productId, int quantity) {
@@ -322,51 +317,28 @@ public class ProductService {
         }
         return false;
     }
-}
-```
-
-Create `ProductController.java`:
-
-```java
-package com.pluralsight.shop.products;
-
-import java.math.BigDecimal;
-import java.util.List;
-
-public class ProductController {
-    private ProductService productService;
-
-    public ProductController() {
-        this.productService = new ProductService();
-    }
 
     public void displayAllProducts() {
         System.out.println("\n=== ALL PRODUCTS ===");
-        List<Product> products = productService.getAllProducts();
+        ArrayList<Product> products = getAllProducts();
         for (Product product : products) {
-            BigDecimal priceWithTax = productService.calculatePriceWithTax(product);
-            System.out.printf("%s - $%.2f (with tax: $%.2f)%n",
-                product, product.getPrice(), priceWithTax);
+            System.out.printf("%s (Tax: %.0f%%, Total: $%.2f)%n",
+                product,
+                product.getTaxRate() * 100,
+                product.getPriceWithTax());
         }
     }
 
-    public void displayProductsByCategory(ProductCategory category) {
-        System.out.println("\n=== " + category.getDisplayName().toUpperCase() + " ===");
-        List<Product> products = productService.findByCategory(category);
+    public void displayProductsByCategory(String category) {
+        System.out.println("\n=== " + category + " PRODUCTS ===");
+        ArrayList<Product> products = findByCategory(category);
         if (products.isEmpty()) {
             System.out.println("No products found in this category");
         } else {
-            products.forEach(System.out::println);
+            for (Product product : products) {
+                System.out.println(product);
+            }
         }
-    }
-
-    public void displayInStockProducts() {
-        System.out.println("\n=== IN STOCK PRODUCTS ===");
-        productService.findInStock().forEach(System.out::println);
-    }
-
-    public ProductService getProductService() {
-        return productService;
     }
 }
 ```
@@ -376,9 +348,7 @@ public class ProductController {
 **Everything in ONE package:**
 
 - `Product` - The data model
-- `ProductCategory` - Related enum
-- `ProductService` - Business logic
-- `ProductController` - User interface logic
+- `ProductService` - Business logic for products
 
 **Benefits:**
 
@@ -411,12 +381,11 @@ In `com.pluralsight.shop.cart`, create `CartItem.java`:
 package com.pluralsight.shop.cart;
 
 import com.pluralsight.shop.products.Product;
-import java.math.BigDecimal;
 
 public class CartItem {
     private Product product;
     private int quantity;
-    private BigDecimal priceAtAddTime;
+    private double priceAtAddTime;
 
     public CartItem(Product product, int quantity) {
         this.product = product;
@@ -424,8 +393,13 @@ public class CartItem {
         this.priceAtAddTime = product.getPrice();
     }
 
-    public BigDecimal getSubtotal() {
-        return priceAtAddTime.multiply(BigDecimal.valueOf(quantity));
+    public double getSubtotal() {
+        return priceAtAddTime * quantity;
+    }
+
+    public double getSubtotalWithTax() {
+        double subtotal = getSubtotal();
+        return subtotal + (subtotal * product.getTaxRate());
     }
 
     public void increaseQuantity(int amount) {
@@ -433,16 +407,17 @@ public class CartItem {
     }
 
     public void setQuantity(int quantity) {
-        if (quantity <= 0) {
-            throw new IllegalArgumentException("Quantity must be positive");
+        if (quantity > 0) {
+            this.quantity = quantity;
+        } else {
+            System.out.println("Quantity must be positive");
         }
-        this.quantity = quantity;
     }
 
     // Getters
     public Product getProduct() { return product; }
     public int getQuantity() { return quantity; }
-    public BigDecimal getPriceAtAddTime() { return priceAtAddTime; }
+    public double getPriceAtAddTime() { return priceAtAddTime; }
 
     @Override
     public String toString() {
@@ -458,15 +433,12 @@ Create `Cart.java`:
 package com.pluralsight.shop.cart;
 
 import com.pluralsight.shop.products.Product;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 
 public class Cart {
     private String cartId;
-    private List<CartItem> items;
+    private ArrayList<CartItem> items;
     private LocalDateTime createdAt;
     private LocalDateTime lastModified;
 
@@ -478,10 +450,11 @@ public class Cart {
     }
 
     public void addItem(Product product, int quantity) {
-        Optional<CartItem> existingItem = findItemByProduct(product);
+        // Check if product already in cart
+        CartItem existingItem = findItemByProduct(product);
 
-        if (existingItem.isPresent()) {
-            existingItem.get().increaseQuantity(quantity);
+        if (existingItem != null) {
+            existingItem.increaseQuantity(quantity);
         } else {
             items.add(new CartItem(product, quantity));
         }
@@ -489,17 +462,26 @@ public class Cart {
     }
 
     public void removeItem(Product product) {
-        items.removeIf(item -> item.getProduct().equals(product));
-        lastModified = LocalDateTime.now();
+        CartItem itemToRemove = null;
+        for (CartItem item : items) {
+            if (item.getProduct().equals(product)) {
+                itemToRemove = item;
+                break;
+            }
+        }
+        if (itemToRemove != null) {
+            items.remove(itemToRemove);
+            lastModified = LocalDateTime.now();
+        }
     }
 
     public void updateQuantity(Product product, int newQuantity) {
-        Optional<CartItem> item = findItemByProduct(product);
-        if (item.isPresent()) {
+        CartItem item = findItemByProduct(product);
+        if (item != null) {
             if (newQuantity <= 0) {
                 removeItem(product);
             } else {
-                item.get().setQuantity(newQuantity);
+                item.setQuantity(newQuantity);
                 lastModified = LocalDateTime.now();
             }
         }
@@ -510,31 +492,52 @@ public class Cart {
         lastModified = LocalDateTime.now();
     }
 
-    public BigDecimal getSubtotal() {
-        return items.stream()
-            .map(CartItem::getSubtotal)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    public double getSubtotal() {
+        double total = 0;
+        for (CartItem item : items) {
+            total += item.getSubtotal();
+        }
+        return total;
+    }
+
+    public double getTax() {
+        double totalTax = 0;
+        for (CartItem item : items) {
+            double itemSubtotal = item.getSubtotal();
+            double itemTax = itemSubtotal * item.getProduct().getTaxRate();
+            totalTax += itemTax;
+        }
+        return totalTax;
+    }
+
+    public double getTotal() {
+        return getSubtotal() + getTax();
     }
 
     public int getTotalItems() {
-        return items.stream()
-            .mapToInt(CartItem::getQuantity)
-            .sum();
+        int total = 0;
+        for (CartItem item : items) {
+            total += item.getQuantity();
+        }
+        return total;
     }
 
     public boolean isEmpty() {
         return items.isEmpty();
     }
 
-    private Optional<CartItem> findItemByProduct(Product product) {
-        return items.stream()
-            .filter(item -> item.getProduct().equals(product))
-            .findFirst();
+    private CartItem findItemByProduct(Product product) {
+        for (CartItem item : items) {
+            if (item.getProduct().equals(product)) {
+                return item;
+            }
+        }
+        return null;
     }
 
     // Getters
     public String getCartId() { return cartId; }
-    public List<CartItem> getItems() { return new ArrayList<>(items); }
+    public ArrayList<CartItem> getItems() { return new ArrayList<>(items); }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getLastModified() { return lastModified; }
 }
@@ -547,12 +550,10 @@ package com.pluralsight.shop.cart;
 
 import com.pluralsight.shop.products.Product;
 import com.pluralsight.shop.products.ProductService;
-import java.math.BigDecimal;
 import java.util.HashMap;
-import java.util.Map;
 
 public class CartService {
-    private Map<String, Cart> activeCarts;
+    private HashMap<String, Cart> activeCarts;
     private ProductService productService;
     private int nextCartId;
 
@@ -596,29 +597,6 @@ public class CartService {
         return true;
     }
 
-    public BigDecimal calculateCartTotal(String cartId) {
-        Cart cart = getCart(cartId);
-        if (cart == null) return BigDecimal.ZERO;
-
-        BigDecimal subtotal = cart.getSubtotal();
-        BigDecimal tax = calculateTax(cart);
-        return subtotal.add(tax);
-    }
-
-    private BigDecimal calculateTax(Cart cart) {
-        BigDecimal totalTax = BigDecimal.ZERO;
-        for (CartItem item : cart.getItems()) {
-            Product product = item.getProduct();
-            BigDecimal itemTotal = item.getSubtotal();
-            if (product.getCategory() != null) {
-                double taxRate = product.getCategory().getTaxRate();
-                BigDecimal itemTax = itemTotal.multiply(BigDecimal.valueOf(taxRate));
-                totalTax = totalTax.add(itemTax);
-            }
-        }
-        return totalTax;
-    }
-
     public void displayCart(String cartId) {
         Cart cart = getCart(cartId);
         if (cart == null || cart.isEmpty()) {
@@ -632,9 +610,17 @@ public class CartService {
         }
         System.out.println("-------------------");
         System.out.printf("Subtotal: $%.2f%n", cart.getSubtotal());
-        System.out.printf("Tax: $%.2f%n", calculateTax(cart));
-        System.out.printf("Total: $%.2f%n", calculateCartTotal(cartId));
+        System.out.printf("Tax: $%.2f%n", cart.getTax());
+        System.out.printf("Total: $%.2f%n", cart.getTotal());
         System.out.printf("Total items: %d%n", cart.getTotalItems());
+    }
+
+    public void clearCart(String cartId) {
+        Cart cart = getCart(cartId);
+        if (cart != null) {
+            cart.clear();
+            System.out.println("Cart cleared");
+        }
     }
 }
 ```
@@ -651,7 +637,7 @@ import com.pluralsight.shop.products.Product;
 - This is okay! Features can depend on each other
 - But keep dependencies minimal and one-way when possible
 
-**Dependency injection:**
+**Service needs service:**
 
 ```java
 public CartService(ProductService productService) {
@@ -659,10 +645,9 @@ public CartService(ProductService productService) {
 }
 ```
 
-- CartService needs ProductService
-- Passed in constructor (dependency injection)
-- Makes testing easier
-- Clear what cart depends on
+- CartService needs ProductService to look up products
+- Passed in through constructor
+- Makes the dependency clear and explicit
 
 ### 🔄 Commit:
 
@@ -676,59 +661,32 @@ public CartService(ProductService productService) {
 
 ### Step 6: Create the Orders Feature
 
-In `com.pluralsight.shop.orders`, create `OrderStatus.java`:
+In `com.pluralsight.shop.orders`, create `OrderItem.java`:
 
 ```java
 package com.pluralsight.shop.orders;
-
-public enum OrderStatus {
-    PENDING("Order placed, awaiting payment"),
-    PAID("Payment received, preparing for shipment"),
-    SHIPPED("Order shipped"),
-    DELIVERED("Order delivered"),
-    CANCELLED("Order cancelled"),
-    REFUNDED("Order refunded");
-
-    private final String description;
-
-    OrderStatus(String description) {
-        this.description = description;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-}
-```
-
-Create `OrderItem.java`:
-
-```java
-package com.pluralsight.shop.orders;
-
-import java.math.BigDecimal;
 
 public class OrderItem {
     private String productId;
     private String productName;
     private int quantity;
-    private BigDecimal unitPrice;
-    private BigDecimal subtotal;
+    private double unitPrice;
+    private double subtotal;
 
-    public OrderItem(String productId, String productName, int quantity, BigDecimal unitPrice) {
+    public OrderItem(String productId, String productName, int quantity, double unitPrice) {
         this.productId = productId;
         this.productName = productName;
         this.quantity = quantity;
         this.unitPrice = unitPrice;
-        this.subtotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
+        this.subtotal = unitPrice * quantity;
     }
 
-    // Getters (all fields are immutable after creation)
+    // Getters (all fields are read-only after creation)
     public String getProductId() { return productId; }
     public String getProductName() { return productName; }
     public int getQuantity() { return quantity; }
-    public BigDecimal getUnitPrice() { return unitPrice; }
-    public BigDecimal getSubtotal() { return subtotal; }
+    public double getUnitPrice() { return unitPrice; }
+    public double getSubtotal() { return subtotal; }
 
     @Override
     public String toString() {
@@ -743,19 +701,18 @@ Create `Order.java`:
 ```java
 package com.pluralsight.shop.orders;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.List;
 
 public class Order {
     private String orderId;
     private String customerId;
-    private List<OrderItem> items;
-    private BigDecimal subtotal;
-    private BigDecimal tax;
-    private BigDecimal total;
-    private OrderStatus status;
+    private ArrayList<OrderItem> items;
+    private double subtotal;
+    private double tax;
+    private double total;
+    private String status; // "PENDING", "PAID", "SHIPPED", "DELIVERED", "CANCELLED"
     private LocalDateTime orderDate;
     private String shippingAddress;
 
@@ -763,11 +720,11 @@ public class Order {
         this.orderId = orderId;
         this.customerId = customerId;
         this.items = new ArrayList<>();
-        this.status = OrderStatus.PENDING;
+        this.status = "PENDING";
         this.orderDate = LocalDateTime.now();
-        this.subtotal = BigDecimal.ZERO;
-        this.tax = BigDecimal.ZERO;
-        this.total = BigDecimal.ZERO;
+        this.subtotal = 0;
+        this.tax = 0;
+        this.total = 0;
     }
 
     public void addItem(OrderItem item) {
@@ -775,35 +732,55 @@ public class Order {
         recalculateTotals();
     }
 
-    public void setTax(BigDecimal tax) {
+    public void setTax(double tax) {
         this.tax = tax;
         recalculateTotals();
     }
 
     private void recalculateTotals() {
-        this.subtotal = items.stream()
-            .map(OrderItem::getSubtotal)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-        this.total = subtotal.add(tax);
+        this.subtotal = 0;
+        for (OrderItem item : items) {
+            this.subtotal += item.getSubtotal();
+        }
+        this.total = subtotal + tax;
     }
 
-    public void updateStatus(OrderStatus newStatus) {
+    public void updateStatus(String newStatus) {
         // Validate status transitions
-        if (this.status == OrderStatus.CANCELLED || this.status == OrderStatus.REFUNDED) {
-            throw new IllegalStateException("Cannot change status of cancelled/refunded order");
+        if ("CANCELLED".equals(this.status) || "REFUNDED".equals(this.status)) {
+            System.out.println("Cannot change status of cancelled/refunded order");
+            return;
         }
         this.status = newStatus;
         System.out.println("Order " + orderId + " status updated to: " + newStatus);
     }
 
+    public String getFormattedOrderDate() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm");
+        return orderDate.format(formatter);
+    }
+
+    // Status check methods
+    public boolean isPending() {
+        return "PENDING".equals(status);
+    }
+
+    public boolean isPaid() {
+        return "PAID".equals(status);
+    }
+
+    public boolean isShipped() {
+        return "SHIPPED".equals(status);
+    }
+
     // Getters
     public String getOrderId() { return orderId; }
     public String getCustomerId() { return customerId; }
-    public List<OrderItem> getItems() { return new ArrayList<>(items); }
-    public BigDecimal getSubtotal() { return subtotal; }
-    public BigDecimal getTax() { return tax; }
-    public BigDecimal getTotal() { return total; }
-    public OrderStatus getStatus() { return status; }
+    public ArrayList<OrderItem> getItems() { return new ArrayList<>(items); }
+    public double getSubtotal() { return subtotal; }
+    public double getTax() { return tax; }
+    public double getTotal() { return total; }
+    public String getStatus() { return status; }
     public LocalDateTime getOrderDate() { return orderDate; }
     public String getShippingAddress() { return shippingAddress; }
     public void setShippingAddress(String address) { this.shippingAddress = address; }
@@ -820,20 +797,19 @@ import com.pluralsight.shop.cart.CartItem;
 import com.pluralsight.shop.cart.CartService;
 import com.pluralsight.shop.products.ProductService;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class OrderService {
-    private Map<String, Order> orderDatabase;
+    private HashMap<String, Order> orderDatabase;
+    private HashMap<String, ArrayList<Order>> customerOrders; // customerId -> orders
     private CartService cartService;
     private ProductService productService;
     private int nextOrderId;
 
     public OrderService(CartService cartService, ProductService productService) {
         this.orderDatabase = new HashMap<>();
+        this.customerOrders = new HashMap<>();
         this.cartService = cartService;
         this.productService = productService;
         this.nextOrderId = 10000;
@@ -861,7 +837,8 @@ public class OrderService {
             if (!stockReduced) {
                 System.out.println("Failed to reserve stock for: " +
                     cartItem.getProduct().getName());
-                return null; // Rollback - in real app would be transaction
+                // In a real app, we'd rollback here
+                return null;
             }
 
             // Create order item
@@ -874,13 +851,17 @@ public class OrderService {
             order.addItem(orderItem);
         }
 
-        // Calculate and set tax
-        BigDecimal tax = cartService.calculateCartTotal(cartId)
-            .subtract(cart.getSubtotal());
-        order.setTax(tax);
+        // Set tax from cart
+        order.setTax(cart.getTax());
 
         // Store order
         orderDatabase.put(orderId, order);
+
+        // Track by customer
+        if (!customerOrders.containsKey(customerId)) {
+            customerOrders.put(customerId, new ArrayList<>());
+        }
+        customerOrders.get(customerId).add(order);
 
         // Clear the cart
         cart.clear();
@@ -893,14 +874,12 @@ public class OrderService {
         return orderDatabase.get(orderId);
     }
 
-    public List<Order> getCustomerOrders(String customerId) {
-        List<Order> customerOrders = new ArrayList<>();
-        for (Order order : orderDatabase.values()) {
-            if (order.getCustomerId().equals(customerId)) {
-                customerOrders.add(order);
-            }
+    public ArrayList<Order> getCustomerOrders(String customerId) {
+        ArrayList<Order> orders = customerOrders.get(customerId);
+        if (orders == null) {
+            return new ArrayList<>();
         }
-        return customerOrders;
+        return new ArrayList<>(orders);
     }
 
     public void displayOrder(String orderId) {
@@ -913,7 +892,7 @@ public class OrderService {
         System.out.println("\n=== ORDER DETAILS ===");
         System.out.println("Order ID: " + order.getOrderId());
         System.out.println("Customer: " + order.getCustomerId());
-        System.out.println("Date: " + order.getOrderDate());
+        System.out.println("Date: " + order.getFormattedOrderDate());
         System.out.println("Status: " + order.getStatus());
         System.out.println("\nItems:");
         for (OrderItem item : order.getItems()) {
@@ -923,6 +902,25 @@ public class OrderService {
         System.out.printf("Subtotal: $%.2f%n", order.getSubtotal());
         System.out.printf("Tax: $%.2f%n", order.getTax());
         System.out.printf("Total: $%.2f%n", order.getTotal());
+    }
+
+    public void displayCustomerOrders(String customerId) {
+        ArrayList<Order> orders = getCustomerOrders(customerId);
+
+        if (orders.isEmpty()) {
+            System.out.println("No orders found for customer: " + customerId);
+            return;
+        }
+
+        System.out.println("\n=== CUSTOMER ORDER HISTORY ===");
+        System.out.println("Customer ID: " + customerId);
+        for (Order order : orders) {
+            System.out.printf("%s - %s - $%.2f - %s%n",
+                order.getOrderId(),
+                order.getFormattedOrderDate(),
+                order.getTotal(),
+                order.getStatus());
+        }
     }
 }
 ```
@@ -964,27 +962,29 @@ In `com.pluralsight.shop.common`, create `IdGenerator.java`:
 ```java
 package com.pluralsight.shop.common;
 
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-
 public class IdGenerator {
-    private static final AtomicInteger customerCounter = new AtomicInteger(1000);
-    private static final AtomicInteger transactionCounter = new AtomicInteger(100000);
+    private static int customerCounter = 1000;
+    private static int transactionCounter = 100000;
+    private static int sessionCounter = 1;
 
+    // Private constructor prevents instantiation
     private IdGenerator() {
-        // Utility class
+        // Utility class - should never be instantiated
     }
 
     public static String generateCustomerId() {
-        return "CUST" + customerCounter.incrementAndGet();
+        customerCounter++;
+        return "CUST" + customerCounter;
     }
 
     public static String generateTransactionId() {
-        return "TXN" + transactionCounter.incrementAndGet();
+        transactionCounter++;
+        return "TXN" + transactionCounter;
     }
 
     public static String generateSessionId() {
-        return "SESSION-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        sessionCounter++;
+        return "SESSION-" + sessionCounter;
     }
 }
 ```
@@ -994,32 +994,22 @@ Create `PriceFormatter.java`:
 ```java
 package com.pluralsight.shop.common;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.text.NumberFormat;
-import java.util.Locale;
-
 public class PriceFormatter {
-    private static final NumberFormat CURRENCY_FORMAT = NumberFormat.getCurrencyInstance(Locale.US);
 
     private PriceFormatter() {
         // Utility class
     }
 
-    public static String format(BigDecimal amount) {
-        return CURRENCY_FORMAT.format(amount);
+    public static String formatPrice(double amount) {
+        return String.format("$%.2f", amount);
     }
 
-    public static String format(double amount) {
-        return CURRENCY_FORMAT.format(amount);
+    public static String formatWithLabel(String label, double amount) {
+        return String.format("%-15s %s", label + ":", formatPrice(amount));
     }
 
-    public static BigDecimal roundToTwoDecimalPlaces(BigDecimal amount) {
-        return amount.setScale(2, RoundingMode.HALF_UP);
-    }
-
-    public static String formatWithLabel(String label, BigDecimal amount) {
-        return String.format("%-15s %s", label + ":", format(amount));
+    public static double roundToTwoDecimalPlaces(double amount) {
+        return Math.round(amount * 100.0) / 100.0;
     }
 }
 ```
@@ -1029,29 +1019,37 @@ Create `ValidationUtils.java`:
 ```java
 package com.pluralsight.shop.common;
 
-import java.util.regex.Pattern;
-
 public class ValidationUtils {
-    private static final Pattern EMAIL_PATTERN =
-        Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
-
-    private static final Pattern PHONE_PATTERN =
-        Pattern.compile("^\\d{3}-\\d{3}-\\d{4}$");
 
     private ValidationUtils() {
         // Utility class
     }
 
     public static boolean isValidEmail(String email) {
-        return email != null && EMAIL_PATTERN.matcher(email).matches();
+        if (email == null || email.isEmpty()) {
+            return false;
+        }
+        // Simple email validation
+        return email.contains("@") &&
+               email.contains(".") &&
+               email.indexOf("@") < email.lastIndexOf(".");
     }
 
     public static boolean isValidPhone(String phone) {
-        return phone != null && PHONE_PATTERN.matcher(phone).matches();
+        if (phone == null || phone.isEmpty()) {
+            return false;
+        }
+        // Simple phone validation (format: 555-555-5555)
+        String cleaned = phone.replaceAll("[^0-9]", "");
+        return cleaned.length() == 10;
     }
 
     public static boolean isValidZipCode(String zipCode) {
-        return zipCode != null && zipCode.matches("\\d{5}(-\\d{4})?");
+        if (zipCode == null || zipCode.isEmpty()) {
+            return false;
+        }
+        // US zip code validation (5 digits or 5+4)
+        return zipCode.matches("\\d{5}") || zipCode.matches("\\d{5}-\\d{4}");
     }
 
     public static boolean isNotEmpty(String str) {
@@ -1074,7 +1072,6 @@ public class ValidationUtils {
 - Formatters
 - Validators
 - Constants
-- Shared exceptions
 
 **What does NOT go in common?**
 
@@ -1105,20 +1102,19 @@ import com.pluralsight.shop.common.IdGenerator;
 import com.pluralsight.shop.common.PriceFormatter;
 import com.pluralsight.shop.orders.Order;
 import com.pluralsight.shop.orders.OrderService;
-import com.pluralsight.shop.orders.OrderStatus;
 import com.pluralsight.shop.products.Product;
-import com.pluralsight.shop.products.ProductCategory;
-import com.pluralsight.shop.products.ProductController;
 import com.pluralsight.shop.products.ProductService;
 
-import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class ECommerceApp {
-    private static ProductController productController;
+    // Services that features need
     private static ProductService productService;
     private static CartService cartService;
     private static OrderService orderService;
+
+    // Current session data
     private static String currentCustomerId;
     private static String currentCartId;
 
@@ -1137,13 +1133,12 @@ public class ECommerceApp {
     private static void initializeSystem() {
         System.out.println("=== INITIALIZING SYSTEM ===");
 
-        // Create services (dependency injection)
-        productController = new ProductController();
-        productService = productController.getProductService();
+        // Create services (wiring features together)
+        productService = new ProductService();
         cartService = new CartService(productService);
         orderService = new OrderService(cartService, productService);
 
-        // Create a customer and cart
+        // Create a customer and cart for this session
         currentCustomerId = IdGenerator.generateCustomerId();
         Cart cart = cartService.createCart();
         currentCartId = cart.getCartId();
@@ -1160,9 +1155,7 @@ public class ECommerceApp {
         System.out.println("📦 PRODUCTS FEATURE");
         System.out.println("  └── Everything about products in ONE place");
         System.out.println("      ├── Product.java (model)");
-        System.out.println("      ├── ProductCategory.java (enum)");
-        System.out.println("      ├── ProductService.java (logic)");
-        System.out.println("      └── ProductController.java (interface)");
+        System.out.println("      └── ProductService.java (business logic)");
         System.out.println();
         System.out.println("🛒 CART FEATURE");
         System.out.println("  └── Complete cart functionality together");
@@ -1174,8 +1167,13 @@ public class ECommerceApp {
         System.out.println("  └── All order-related code in one package");
         System.out.println("      ├── Order.java");
         System.out.println("      ├── OrderItem.java");
-        System.out.println("      ├── OrderStatus.java");
         System.out.println("      └── OrderService.java");
+        System.out.println();
+        System.out.println("🔧 COMMON MODULE");
+        System.out.println("  └── Shared utilities used by all features");
+        System.out.println("      ├── IdGenerator.java");
+        System.out.println("      ├── PriceFormatter.java");
+        System.out.println("      └── ValidationUtils.java");
         System.out.println();
         System.out.println("Benefits:");
         System.out.println("✓ Easy to locate feature code");
@@ -1189,7 +1187,7 @@ public class ECommerceApp {
         System.out.println("=== SHOPPING DEMONSTRATION ===\n");
 
         // Display products
-        productController.displayAllProducts();
+        productService.displayAllProducts();
 
         // Add items to cart
         System.out.println("\n--- Adding items to cart ---");
@@ -1209,9 +1207,9 @@ public class ECommerceApp {
 
             // Simulate order processing
             System.out.println("\n--- Processing order ---");
-            order.updateStatus(OrderStatus.PAID);
+            order.updateStatus("PAID");
             order.setShippingAddress("123 Main St, Anytown, USA 12345");
-            order.updateStatus(OrderStatus.SHIPPED);
+            order.updateStatus("SHIPPED");
         }
     }
 
@@ -1222,16 +1220,18 @@ public class ECommerceApp {
         System.out.println("\n=== INTERACTIVE MENU ===");
 
         while (running) {
-            System.out.println("\n1. View products by category");
+            System.out.println("\n--- Main Menu ---");
+            System.out.println("1. View products by category");
             System.out.println("2. Add product to cart");
             System.out.println("3. View cart");
             System.out.println("4. Checkout");
-            System.out.println("5. View feature organization");
-            System.out.println("6. Exit");
+            System.out.println("5. View my orders");
+            System.out.println("6. Show feature organization");
+            System.out.println("7. Exit");
             System.out.print("Choice: ");
 
             int choice = scanner.nextInt();
-            scanner.nextLine();
+            scanner.nextLine(); // Consume newline
 
             switch (choice) {
                 case 1:
@@ -1247,9 +1247,12 @@ public class ECommerceApp {
                     checkout();
                     break;
                 case 5:
-                    demonstrateFeatureOrganization();
+                    orderService.displayCustomerOrders(currentCustomerId);
                     break;
                 case 6:
+                    demonstrateFeatureOrganization();
+                    break;
+                case 7:
                     running = false;
                     System.out.println("Thank you for shopping!");
                     break;
@@ -1262,53 +1265,67 @@ public class ECommerceApp {
     }
 
     private static void viewProductsByCategory(Scanner scanner) {
-        System.out.println("\nCategories:");
-        for (ProductCategory cat : ProductCategory.values()) {
-            System.out.println("- " + cat.getDisplayName());
-        }
-        System.out.print("Enter category: ");
-        String catName = scanner.nextLine();
+        System.out.println("\nAvailable categories:");
+        System.out.println("1. ELECTRONICS");
+        System.out.println("2. CLOTHING");
+        System.out.println("3. FOOD");
+        System.out.println("4. BOOKS");
+        System.out.print("Enter category name: ");
+        String category = scanner.nextLine().toUpperCase();
 
-        try {
-            ProductCategory category = ProductCategory.valueOf(catName.toUpperCase());
-            productController.displayProductsByCategory(category);
-        } catch (IllegalArgumentException e) {
-            System.out.println("Invalid category!");
-        }
+        productService.displayProductsByCategory(category);
     }
 
     private static void addProductToCart(Scanner scanner) {
-        productController.displayInStockProducts();
-        System.out.print("\nEnter product ID: ");
+        // Show available products
+        ArrayList<Product> products = productService.findInStock();
+        System.out.println("\n=== AVAILABLE PRODUCTS ===");
+        for (Product product : products) {
+            System.out.println(product);
+        }
+
+        System.out.print("\nEnter product ID (e.g., PROD1000): ");
         String productId = scanner.nextLine();
         System.out.print("Enter quantity: ");
         int quantity = scanner.nextInt();
-        scanner.nextLine();
+        scanner.nextLine(); // Consume newline
 
-        cartService.addToCart(currentCartId, productId, quantity);
+        boolean added = cartService.addToCart(currentCartId, productId, quantity);
+        if (added) {
+            System.out.println("Item added to cart!");
+        }
     }
 
     private static void checkout() {
         Cart cart = cartService.getCart(currentCartId);
         if (cart == null || cart.isEmpty()) {
-            System.out.println("Cart is empty!");
+            System.out.println("Cart is empty! Add some items first.");
             return;
         }
 
         System.out.println("\n--- CHECKOUT ---");
         cartService.displayCart(currentCartId);
 
-        Order order = orderService.createOrderFromCart(currentCartId, currentCustomerId);
-        if (order != null) {
-            order.setShippingAddress("Customer Address Here");
-            order.updateStatus(OrderStatus.PAID);
-            System.out.println("\n✅ Order placed successfully!");
-            System.out.println("Order ID: " + order.getOrderId());
-            System.out.println("Total: " + PriceFormatter.format(order.getTotal()));
+        System.out.print("\nConfirm order? (yes/no): ");
+        Scanner scanner = new Scanner(System.in);
+        String confirm = scanner.nextLine();
 
-            // Create new cart for next shopping session
-            Cart newCart = cartService.createCart();
-            currentCartId = newCart.getCartId();
+        if ("yes".equalsIgnoreCase(confirm)) {
+            Order order = orderService.createOrderFromCart(currentCartId, currentCustomerId);
+            if (order != null) {
+                order.setShippingAddress("Customer Address Here");
+                order.updateStatus("PAID");
+                System.out.println("\n✅ Order placed successfully!");
+                System.out.println("Order ID: " + order.getOrderId());
+                System.out.println("Total: " + PriceFormatter.formatPrice(order.getTotal()));
+
+                // Create new cart for next shopping session
+                Cart newCart = cartService.createCart();
+                currentCartId = newCart.getCartId();
+                System.out.println("New cart created for next purchase");
+            }
+        } else {
+            System.out.println("Order cancelled");
         }
     }
 }
@@ -1322,17 +1339,23 @@ public class ECommerceApp {
 - Can see and orchestrate all features
 - Acts as the conductor
 
-**Dependency wiring:**
+**Wiring features together:**
 
 ```java
-productService = productController.getProductService();
+productService = new ProductService();
 cartService = new CartService(productService);
 orderService = new OrderService(cartService, productService);
 ```
 
-- Main app wires features together
+- Main app connects features
 - Clear dependency chain
-- Could use dependency injection framework later
+- Each service gets what it needs
+
+**Feature independence:**
+
+- Each feature package could be its own project
+- Only main app knows about all features
+- Features don't know about main app
 
 ### 🔄 Final Commit:
 
@@ -1387,7 +1410,7 @@ orderService = new OrderService(cartService, productService);
 1. **Feature-based = Vertical slices** - Each package is a complete feature
 2. **Self-contained features** - Everything about a feature in ONE place
 3. **Clear boundaries** - Easy to see where features start and end
-4. **Dependencies are explicit** - Constructor injection shows what features need
+4. **Dependencies are explicit** - Constructor parameters show what features need
 5. **Scales better** - Can grow to hundreds of features without chaos
 6. **Team-friendly** - "You work on cart, I'll work on orders"
 
@@ -1395,11 +1418,11 @@ orderService = new OrderService(cartService, productService);
 
 ## 💪 Challenge Exercises
 
-1. **Add a Customer feature** - Registration, login, profiles
-2. **Add a Reviews feature** - Product ratings and reviews
-3. **Add a Shipping feature** - Different shipping methods and tracking
-4. **Add a Promotions feature** - Discount codes and sales
-5. **Extract Cart to a microservice** - See how easy it is with this structure!
+1. **Add a Customer feature** - Customer class, CustomerService for registration
+2. **Add a Reviews feature** - ProductReview class, ReviewService
+3. **Add a Search feature** - SearchService that searches across products
+4. **Add a Discount feature** - DiscountCode class, DiscountService
+5. **Add inventory alerts** - Notify when products are low on stock
 
 ---
 
