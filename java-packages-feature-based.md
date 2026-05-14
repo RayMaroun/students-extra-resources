@@ -1244,7 +1244,7 @@ public class ECommerceApp {
                     cartService.displayCart(currentCartId);
                     break;
                 case 4:
-                    checkout();
+                    checkout(scanner);
                     break;
                 case 5:
                     orderService.displayCustomerOrders(currentCustomerId);
@@ -1270,8 +1270,28 @@ public class ECommerceApp {
         System.out.println("2. CLOTHING");
         System.out.println("3. FOOD");
         System.out.println("4. BOOKS");
-        System.out.print("Enter category name: ");
-        String category = scanner.nextLine().toUpperCase();
+        System.out.print("Enter choice (1-4) or category name: ");
+        String input = scanner.nextLine().trim();
+
+        // Map numeric choice to category, or let the user type the name directly
+        String category;
+        switch (input) {
+            case "1":
+                category = "ELECTRONICS";
+                break;
+            case "2":
+                category = "CLOTHING";
+                break;
+            case "3":
+                category = "FOOD";
+                break;
+            case "4":
+                category = "BOOKS";
+                break;
+            default:
+                category = input.toUpperCase();
+                break;
+        }
 
         productService.displayProductsByCategory(category);
     }
@@ -1296,7 +1316,7 @@ public class ECommerceApp {
         }
     }
 
-    private static void checkout() {
+    private static void checkout(Scanner scanner) {
         Cart cart = cartService.getCart(currentCartId);
         if (cart == null || cart.isEmpty()) {
             System.out.println("Cart is empty! Add some items first.");
@@ -1307,7 +1327,6 @@ public class ECommerceApp {
         cartService.displayCart(currentCartId);
 
         System.out.print("\nConfirm order? (yes/no): ");
-        Scanner scanner = new Scanner(System.in);
         String confirm = scanner.nextLine();
 
         if ("yes".equalsIgnoreCase(confirm)) {
@@ -1356,6 +1375,14 @@ orderService = new OrderService(cartService, productService);
 - Each feature package could be its own project
 - Only main app knows about all features
 - Features don't know about main app
+
+**🔍 A note on the interactive menu:**
+
+Two details in this menu are easy to get wrong, and worth a moment of attention:
+
+1. **One Scanner for the whole session.** The menu opens a single `Scanner` on `System.in` in `runInteractiveMenu()` and passes it down to `viewProductsByCategory(scanner)`, `addProductToCart(scanner)`, and `checkout(scanner)`. Never open a second `Scanner` on `System.in` inside one of these helpers — it can swallow input or block unpredictably because two scanners are sharing the same underlying stream.
+
+2. **The category menu accepts both numbers and names.** The menu shows a numbered list (`1. ELECTRONICS`, `2. CLOTHING`, …), but the underlying category is a string. A small `switch` maps `"1"` → `"ELECTRONICS"`, etc., and falls back to `input.toUpperCase()` so typing `electronics` or `Books` still works. This is a useful pattern any time a menu shows numbered options but the underlying value is a string.
 
 ### 🔄 Final Commit:
 
